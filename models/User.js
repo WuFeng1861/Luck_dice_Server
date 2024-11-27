@@ -89,6 +89,10 @@ User.init({
     type: DataTypes.STRING,
     allowNull: false
   },
+  address: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
   balance: {
     type: DataTypes.DECIMAL(10, 2),
     allowNull: false,
