@@ -9,6 +9,8 @@ const authRoutes = require('./routes/auth');
 const gameRoutes = require('./routes/game');
 const errorMiddleware = require('./middleware/error');
 const statsRoutes = require('./routes/stats');
+const rechargeRoutes = require('./routes/recharge');
+const { startRechargeTask } = require('./controllers/rechargeController');
 
 const app = express();
 
@@ -23,6 +25,7 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecs));
 app.use('/api/auth', authRoutes);
 app.use('/api/game', gameRoutes);
 app.use('/api/stats', statsRoutes);
+app.use('/api/recharge', rechargeRoutes);
 
 // 错误处理
 app.use(errorMiddleware);
@@ -31,6 +34,9 @@ app.use(errorMiddleware);
 sequelize.sync({ alter: true })
   .then(() => {
     console.log('Database connected and synced');
+    
+    // 启动充值检查任务
+    startRechargeTask();
     
     // 启动服务器
     const PORT = process.env.PORT || 3000;
@@ -41,4 +47,4 @@ sequelize.sync({ alter: true })
   })
   .catch(err => {
     console.error('Database connection error:', err);
-  }); 
+  });

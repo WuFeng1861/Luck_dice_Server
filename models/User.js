@@ -22,7 +22,7 @@ BigNumber.config({
 });
 
 class User extends Model {
-  async updateBalance(amount) {
+  async updateBalance(amount, options = {}) {
     try {
       // 转换为 BigNumber 并验证输入
       const currentBalance = new BigNumber(this.balance);
@@ -56,10 +56,11 @@ class User extends Model {
       }
 
       this.balance = formattedBalance;
-      await this.save();
+      await this.save(options);
       return this.balance;
 
     } catch (error) {
+      console.error(error);
       if (error.message === '余额不足' || 
           error.message === '无效的金额' || 
           error.message === '余额超出限制' ||
@@ -82,8 +83,7 @@ User.init({
   },
   username: {
     type: DataTypes.STRING,
-    allowNull: false,
-    unique: true
+    allowNull: false
   },
   password: {
     type: DataTypes.STRING,
@@ -123,7 +123,13 @@ User.init({
         user.password = await bcrypt.hash(user.password, salt);
       }
     }
-  }
+  },
+  indexes: [
+    {
+      unique: true,
+      fields: ['username']
+    }
+  ]
 });
 
 module.exports = User; 

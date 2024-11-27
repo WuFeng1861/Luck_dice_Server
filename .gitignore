@@ -1,2 +1,3 @@
 #完善gitignore
 node_modules
+.idea

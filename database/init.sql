@@ -24,4 +24,49 @@ CREATE TABLE IF NOT EXISTS Games (
   createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
   updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   FOREIGN KEY (userId) REFERENCES Users(id)
-); 
+);
+
+CREATE TABLE IF NOT EXISTS Transactions (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  chainId INT NOT NULL,
+  hash VARCHAR(255) NOT NULL UNIQUE,
+  coinName VARCHAR(50) NOT NULL,
+  type INT NOT NULL,
+  sender VARCHAR(255) NOT NULL,
+  receiver VARCHAR(255) NOT NULL,
+  amount DECIMAL(36, 18) NOT NULL,
+  createTime BIGINT NOT NULL,
+  fee DECIMAL(36, 18) NOT NULL,
+  remark TEXT,
+  processed BOOLEAN DEFAULT FALSE,
+  createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_chainId (chainId),
+  INDEX idx_hash (hash),
+  INDEX idx_sender (sender),
+  INDEX idx_receiver (receiver)
+);
+
+CREATE TABLE IF NOT EXISTS Recharges (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  userId INT NOT NULL,
+  transactionId INT NOT NULL,
+  amount DECIMAL(36, 18) NOT NULL,
+  status ENUM('pending', 'completed', 'failed') DEFAULT 'pending',
+  createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (userId) REFERENCES Users(id),
+  FOREIGN KEY (transactionId) REFERENCES Transactions(id),
+  INDEX idx_userId (userId),
+  INDEX idx_status (status)
+);
+
+CREATE TABLE IF NOT EXISTS TransactionSync (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  lastProcessedId INT NOT NULL,
+  createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- Insert initial sync record
+INSERT INTO TransactionSync (lastProcessedId) VALUES (1);
