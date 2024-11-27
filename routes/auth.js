@@ -90,6 +90,8 @@ router.get('/captcha', authController.getCaptcha);
  *                       type: string
  *                     balance:
  *                       type: number
+ *                     address:
+ *                       type: string
  *       400:
  *         description: 验证码错误或输入无效
  *       401:
@@ -140,6 +142,8 @@ router.post('/logout', auth, authController.logout);
  *                   type: string
  *                 balance:
  *                   type: number
+ *                 address:
+ *                   type: string
  *       401:
  *         description: 未授权
  */
@@ -188,5 +192,61 @@ router.get('/user', auth, authController.getUser);
  *         description: 用户名已存在或输入无效
  */
 router.post('/register', authController.register);
+
+/**
+ * @swagger
+ * /api/auth/bind-address:
+ *   post:
+ *     summary: 绑定用户地址
+ *     tags: [认证]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - address
+ *               - captchaId
+ *               - captchaText
+ *             properties:
+ *               address:
+ *                 type: string
+ *                 description: 用户地址
+ *               captchaId:
+ *                 type: string
+ *                 description: 验证码ID
+ *               captchaText:
+ *                 type: string
+ *                 description: 用户输入的验证码
+ *     responses:
+ *       200:
+ *         description: 地址绑定成功
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 user:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                     username:
+ *                       type: string
+ *                     balance:
+ *                       type: number
+ *                     address:
+ *                       type: string
+ *       400:
+ *         description: 验证码错误、地址格式无效或地址已被绑定
+ *       401:
+ *         description: 未授权
+ */
+router.post('/bind-address', auth, authController.bindAddress);
 
 module.exports = router;

@@ -9,7 +9,7 @@ const captchaOptions = {
   width: 120,
   height: 40,
   fontSize: 50,
-  charPreset: '123456789ABCDEFGHIJKLMNPQRSTUVWXYZabcdefghjkmnopqrstuvwxyz' // 字符集
+  charPreset: '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnopqrstuvwxyz' // 字符集
 };
 
 // 生成验证码

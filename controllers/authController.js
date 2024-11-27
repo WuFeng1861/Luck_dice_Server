@@ -1,6 +1,7 @@
+const { Op } = require('sequelize');
 const User = require('../models/User');
 const { generateToken } = require('../utils/jwt');
-const { validateUsername, validatePassword } = require('../utils/validator');
+const { validateUsername, validatePassword, validateAddress, validateSignBindAddress} = require('../utils/validator');
 const { cache, deleteCache } = require('../utils/cache');
 const { generateCaptcha, validateCaptcha } = require('../utils/captcha');
 const { v4: uuidv4 } = require('uuid');
@@ -10,10 +11,10 @@ exports.getCaptcha = async (req, res) => {
   try {
     const captcha = generateCaptcha();
     const captchaId = uuidv4();
-    
+
     // 将验证码存入缓存，设置60秒过期
     cache.set(`captcha:${captchaId}`, captcha.text, 5*60);
-    
+
     res.json({
       captchaId,
       svg: captcha.svg
@@ -83,7 +84,8 @@ exports.login = async (req, res) => {
       user: {
         id: user.id,
         username: user.username,
-        balance: user.balance
+        balance: user.balance,
+        address: user.address || ''
       }
     });
   } catch (error) {
@@ -124,7 +126,8 @@ exports.getUser = async (req, res) => {
     const userData = {
       id: user.id,
       username: user.username,
-      balance: user.balance
+      balance: user.balance,
+      address: user.address || ''
     };
 
     cache.set(cacheKey, userData, 300);
@@ -188,6 +191,92 @@ exports.register = async (req, res) => {
     });
   } catch (error) {
     console.error('Register error:', error);
+    res.status(500).json({
+      error: {
+        code: 'INTERNAL_SERVER_ERROR',
+        message: '服务器内部错误'
+      }
+    });
+  }
+};
+
+exports.bindAddress = async (req, res) => {
+  try {
+    const { address, captchaId, captchaText, signRes } = req.body;
+    const userId = req.user.id;
+
+    // 验证验证码
+    if (!validateCaptcha(captchaId, captchaText)) {
+      return res.status(400).json({
+        error: {
+          code: 'INVALID_CAPTCHA',
+          message: '验证码错误或已过期'
+        }
+      });
+    }
+
+    // 验证地址格式
+    if (!validateAddress(address)) {
+      return res.status(400).json({
+        error: {
+          code: 'INVALID_ADDRESS',
+          message: '无效的地址格式'
+        }
+      });
+    }
+
+    // 验证签名是否是该地址的
+    if(!validateSignBindAddress(address, signRes)) {
+      return res.status(400).json({
+        error: {
+          code: 'INVALID_ADDRESS_SIGN',
+          message: '签名验证失败'
+        }
+      })
+    }
+
+
+    // 检查地址是否已被其他用户绑定
+    const existingUser = await User.findOne({
+      where: {
+        address,
+        id: { [Op.ne]: userId } // 排除当前用户
+      }
+    });
+
+    if (existingUser) {
+      return res.status(400).json({
+        error: {
+          code: 'ADDRESS_TAKEN',
+          message: '该地址已被其他用户绑定'
+        }
+      });
+    }
+
+    // 更新用户地址
+    const user = await User.findByPk(userId);
+    user.address = address;
+    await user.save();
+
+    // 删除用户缓存
+    await deleteCache(`user:${userId}`);
+
+    // 延迟双删
+    setTimeout(async () => {
+      await deleteCache(`user:${userId}`);
+    }, 500);
+
+    res.json({
+      message: '地址绑定成功',
+      user: {
+        id: user.id,
+        username: user.username,
+        balance: user.balance,
+        address: user.address
+      }
+    });
+  } catch (error) {
+    console.error('Bind address error:', error);
     res.status(500).json({
       error: {
         code: 'INTERNAL_SERVER_ERROR',
