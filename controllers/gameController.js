@@ -4,6 +4,7 @@ const { validateBet } = require('../utils/validator');
 const sequelize = require('../config/database');
 const { cache, withCache, deleteCache } = require('../utils/cache');
 const BigNumber = require('bignumber.js');
+const { rollDice, rollMultipleDice, drawCard } = require('../utils/random');
 
 // 配置 BigNumber
 BigNumber.config({ DECIMAL_PLACES: 2, ROUNDING_MODE: BigNumber.ROUND_DOWN });
@@ -30,12 +31,12 @@ exports.updateBalance = async (req, res) => {
   try {
     const { amount } = req.body;
     const user = await User.findByPk(req.user.id);
-    
+
     // 使用 BigNumber 进行计算和比较
     const currentBalance = new BigNumber(user.balance);
     const changeAmount = new BigNumber(amount);
     const newBalance = currentBalance.plus(changeAmount);
-    
+
     // 检查余额是否足够（如果是减少余额的情况）
     if (changeAmount.isNegative() && newBalance.isLessThan(0)) {
       return res.status(400).json({
@@ -88,7 +89,7 @@ exports.placeBet = async (req, res) => {
     const { amount, selectedFace } = req.body;
     const user = req.user;
     const userId = user.id;
-    
+
     // 转换为 BigNumber
     const betAmount = new BigNumber(amount);
     const userBalance = new BigNumber(user.balance);
@@ -120,12 +121,12 @@ exports.placeBet = async (req, res) => {
     }
 
     // 生成骰子结果
-    const finalNumber = Math.floor(Math.random() * 6) + 1;
+    const finalNumber = rollDice();
     const win = finalNumber === selectedFace;
     const multiplier = new BigNumber('5.5');
-    const winAmount = win 
-      ? betAmount.multipliedBy(multiplier) 
-      : betAmount.negated();
+    const winAmount = win
+        ? betAmount.multipliedBy(multiplier)
+        : betAmount.negated();
 
     // 更新用户余额
     try {
@@ -184,9 +185,9 @@ exports.getHistory = async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const pageSize = 10;
     const userId = req.user.id;
-    
+
     const cacheKey = `history:${userId}:${page}`;
-    
+
     // 尝试从缓存获取
     const cachedData = cache.get(cacheKey);
     if (cachedData) {
@@ -228,7 +229,7 @@ exports.getHistory = async (req, res) => {
 exports.addHistory = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { 
+    const {
       gameType,
       amount,
       win,
@@ -330,7 +331,7 @@ exports.placeTripleBet = async (req, res) => {
     }
 
     // 生成三个骰子结果
-    const diceResults = Array(3).fill(0).map(() => Math.floor(Math.random() * 6) + 1);
+    const diceResults = rollMultipleDice(3);
     const sum = diceResults.reduce((a, b) => a + b, 0);
 
     // 判断输赢和倍率
@@ -356,20 +357,20 @@ exports.placeTripleBet = async (req, res) => {
       multiplier = 30; // 概率2.78%，赔率30倍
     }
     else if (selectedOption === 'pair' && (
-      diceResults[0] === diceResults[1] ||
-      diceResults[1] === diceResults[2] ||
-      diceResults[0] === diceResults[2]
+        diceResults[0] === diceResults[1] ||
+        diceResults[1] === diceResults[2] ||
+        diceResults[0] === diceResults[2]
     )) {
       // 对子（任意两个相同）
       win = true;
       multiplier = 2; // 概率41.67%，赔率2倍
     }
     else if (selectedOption === 'straight' && (
-      // 顺子（三个续数字）
-      (diceResults.includes(1) && diceResults.includes(2) && diceResults.includes(3)) ||
-      (diceResults.includes(2) && diceResults.includes(3) && diceResults.includes(4)) ||
-      (diceResults.includes(3) && diceResults.includes(4) && diceResults.includes(5)) ||
-      (diceResults.includes(4) && diceResults.includes(5) && diceResults.includes(6))
+        // 顺子（三个续数字）
+        (diceResults.includes(1) && diceResults.includes(2) && diceResults.includes(3)) ||
+        (diceResults.includes(2) && diceResults.includes(3) && diceResults.includes(4)) ||
+        (diceResults.includes(3) && diceResults.includes(4) && diceResults.includes(5)) ||
+        (diceResults.includes(4) && diceResults.includes(5) && diceResults.includes(6))
     )) {
       win = true;
       multiplier = 6; // 概率13.89%，赔率6倍
@@ -385,9 +386,9 @@ exports.placeTripleBet = async (req, res) => {
       straight: new BigNumber('6')
     };
 
-    winAmount = win 
-      ? betAmount.multipliedBy(multipliers[selectedOption]) 
-      : betAmount.negated();
+    winAmount = win
+        ? betAmount.multipliedBy(multipliers[selectedOption])
+        : betAmount.negated();
 
     // 更新用户余额
     try {
@@ -481,8 +482,8 @@ exports.placeDragonTigerBet = async (req, res) => {
     }
 
     // 生成牌面点数（1-13）
-    const dragonCard = Math.floor(Math.random() * 13) + 1;
-    const tigerCard = Math.floor(Math.random() * 13) + 1;
+    const dragonCard = drawCard();
+    const tigerCard = drawCard();
 
     // 判断输赢和倍率
     let win = false;
@@ -499,9 +500,9 @@ exports.placeDragonTigerBet = async (req, res) => {
       multiplier = new BigNumber('8');
     }
 
-    const winAmount = win 
-      ? betAmount.multipliedBy(multiplier) 
-      : betAmount.negated();
+    const winAmount = win
+        ? betAmount.multipliedBy(multiplier)
+        : betAmount.negated();
 
     // 更新用户余额
     try {
@@ -553,4 +554,4 @@ exports.placeDragonTigerBet = async (req, res) => {
       }
     });
   }
-}; 
+};
