@@ -119,9 +119,11 @@ const processTransaction = async (tx, dbTransaction) => {
       transaction: dbTransaction,
       lock: true // 使用悲观锁防止并发更新
     });
+    console.log(tx.sender, user);
     if (!user) {
       return null;
     }
+    console.log(tx);
     let lastBalance = user.balance ;
 
     let transaction;

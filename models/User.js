@@ -83,7 +83,7 @@ User.init({
   },
   username: {
     type: DataTypes.STRING,
-    allowNull: false
+    allowNull: false,
   },
   password: {
     type: DataTypes.STRING,
@@ -126,8 +126,9 @@ User.init({
   },
   indexes: [
     {
+      fields: ['username'],
       unique: true,
-      fields: ['username']
+      name: 'idx_username'
     }
   ]
 });

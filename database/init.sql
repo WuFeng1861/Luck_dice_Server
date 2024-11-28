@@ -9,7 +9,8 @@ CREATE TABLE IF NOT EXISTS Users (
   balance DECIMAL(10, 2) DEFAULT 0.00,
   address VARCHAR(255),
   createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-  updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+  updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_username (username)
 );
 
 CREATE TABLE IF NOT EXISTS Games (
@@ -44,7 +45,8 @@ CREATE TABLE IF NOT EXISTS Transactions (
   INDEX idx_chainId (chainId),
   INDEX idx_hash (hash),
   INDEX idx_sender (sender),
-  INDEX idx_receiver (receiver)
+  INDEX idx_receiver (receiver),
+  INDEX idx_processed (processed)
 );
 
 CREATE TABLE IF NOT EXISTS Recharges (
@@ -58,7 +60,9 @@ CREATE TABLE IF NOT EXISTS Recharges (
   FOREIGN KEY (userId) REFERENCES Users(id),
   FOREIGN KEY (transactionId) REFERENCES Transactions(id),
   INDEX idx_userId (userId),
-  INDEX idx_status (status)
+  INDEX idx_status (status),
+  INDEX idx_transactionId (transactionId),
+  INDEX idx_createdAt (createdAt)
 );
 
 CREATE TABLE IF NOT EXISTS TransactionSync (

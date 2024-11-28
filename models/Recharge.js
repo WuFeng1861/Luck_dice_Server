@@ -32,16 +32,24 @@ const Recharge = sequelize.define('Recharge', {
   timestamps: true,
   indexes: [
     {
-      fields: ['userId']
+      fields: ['userId'],
+      unique: false,
+      name: 'idx_userId'
     },
     {
-      fields: ['transactionId']
+      fields: ['transactionId'],
+      unique: false,
+      name: 'idx_transactionId'
     },
     {
-      fields: ['status']
+      fields: ['status'],
+      unique: false,
+      name: 'idx_status'
     },
     {
-      fields: ['createdAt']
+      fields: ['createdAt'],
+      unique: false,
+      name: 'idx_createdAt'
     }
   ]
 });

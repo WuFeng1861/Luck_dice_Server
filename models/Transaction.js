@@ -15,7 +15,6 @@ const Transaction = sequelize.define('Transaction', {
   hash: {
     type: DataTypes.STRING,
     allowNull: false,
-    unique: true,
     comment: '交易哈希'
   },
   coinName: {
@@ -66,12 +65,11 @@ const Transaction = sequelize.define('Transaction', {
   tableName: 'Transactions',
   timestamps: true,
   indexes: [
-    { fields: ['chainId'] },
-    { fields: ['hash'], unique: true },
-    { fields: ['sender'] },
-    { fields: ['receiver'] },
-    { fields: ['processed'] },
-    { fields: ['createTime'] }
+    { fields: ['chainId'], unique: false, name: 'idx_chainId' },
+    { fields: ['hash'], unique: true, name: 'idx_hash' },
+    { fields: ['sender'], unique: false, name: 'idx_sender' },
+    { fields: ['receiver'], unique: false, name: 'idx_receiver' },
+    { fields: ['processed'], unique: false, name: 'idx_processed' },
   ]
 });
 
