@@ -164,7 +164,7 @@ exports.placeBet = async (req, res) => {
     res.json({
       finalNumber,
       win,
-      winAmount: win ? winAmount.toString() : '0',
+      winAmount: win ? betAmount.plus(winAmount).toString() : '0',
       amount: betAmount.toString()
     });
   } catch (error) {
@@ -427,7 +427,7 @@ exports.placeTripleBet = async (req, res) => {
       diceResults,
       sum,
       win,
-      winAmount: win ? winAmount.toString() : '0',
+      winAmount: win ? betAmount.plus(winAmount).toString() : '0',
       amount: betAmount.toString()
     });
   } catch (error) {
@@ -541,7 +541,7 @@ exports.placeDragonTigerBet = async (req, res) => {
       dragonCard,
       tigerCard,
       win,
-      winAmount: win ? winAmount.toString() : '0',
+      winAmount: win ? betAmount.plus(winAmount).toString() : '0',
       amount: betAmount.toString()
     });
   } catch (error) {
