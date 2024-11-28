@@ -43,23 +43,26 @@ const fetchTransactions = async (startId) => {
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwidHlwZSI6MCwiaWF0IjoxNzMyNzA1NDY4LCJleHAiOjE3MzI5NjQ2Njh9.Iv6VDPgkqjjgvUDxLqxfdVYGZAmxxwLBW1T8ufT6NHc 1`
+        'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwidHlwZSI6MCwiaWF0IjoxNzMyNzk4NzUyLCJleHAiOjQ4ODg1NTg3NTJ9.gSw5C-QItcpXWA6a9UpNP5qHemlut4A5JoKT9zTBMnc 1`
       }
     });
-    // console.log(response.data.msg.list);
+    // console.log(response.data);
     if (response.data.code === 200 && response.data.msg.result) {
       return response.data.msg.list;
     }
+    if (response.data.code === 401) {
+      throw new Error('token expired');
+    }
     return [];
   } catch (error) {
-    console.error('Fetch transactions error:', error);
+    console.error('Fetch transactions error:', error.message);
     throw new Error('Failed to fetch transactions');
   }
 };
 
 // 验证交易数据
 const validateTransaction = (tx) => {
-  console.log(tx);
+  // console.log(tx);
   if (!tx.hash || !tx.id || !tx.amount || !tx.sender || !tx.receiver) {
     throw new Error('Invalid transaction data');
   }
@@ -119,17 +122,17 @@ const processTransaction = async (tx, dbTransaction) => {
       transaction: dbTransaction,
       lock: true // 使用悲观锁防止并发更新
     });
-    console.log(tx.sender, user);
+    // console.log(tx.sender, user);
     if (!user) {
       return null;
     }
-    console.log(tx);
+    // console.log(tx);
     let lastBalance = user.balance ;
 
     let transaction;
     if (user) {
       // 创建交易记录
-       transaction= await createTransaction(tx, dbTransaction);
+      transaction= await createTransaction(tx, dbTransaction);
 
       // 创建充值记录
       await createRecharge(user.id, transaction.id, tx.amount, dbTransaction);
@@ -168,10 +171,12 @@ const processNewTransactions = async () => {
     let startId = 2147483648;
     let shouldContinue = true;
     let processedTransactions = new Set();
+    console.log('start processNewTransactions:' + new Date().toLocaleString());
+    console.log('lastProcessedId:'+lastProcessedId);
 
     while (shouldContinue) {
       const transactions = await fetchTransactions(startId);
-
+      // console.log('transactions.length:'+transactions.length);
       if (transactions.length === 0) {
         break;
       }
@@ -179,6 +184,7 @@ const processNewTransactions = async () => {
       shouldContinue = false;
 
       for (const tx of transactions) {
+        // console.log('tx.id:'+tx.id);
         // 如果交易ID小于等于上次处理的ID，停止处理
         if (tx.id <= lastProcessedId) {
           shouldContinue = false;
@@ -233,6 +239,7 @@ const processNewTransactions = async () => {
       console.log(`${tx.userId} 用户:${tx.sender}地址， 充值了 ${tx.amount}，充值成功。交易hash:${tx.hash}，充值前余额:${tx.oldBalance}，充值后余额:${tx.newBalance}`)
     }
     finishList.length = 0; // 清空已完成的交易列表
+    console.log('finish processNewTransactions:' + new Date().toLocaleString());
     return true;
   } catch (error) {
     await dbTransaction.rollback();
