@@ -123,7 +123,7 @@ exports.placeBet = async (req, res) => {
     // 生成骰子结果
     const finalNumber = rollDice();
     const win = finalNumber === selectedFace;
-    const multiplier = new BigNumber('5.5');
+    const multiplier = new BigNumber('4.5');
     const winAmount = win
         ? betAmount.multipliedBy(multiplier)
         : betAmount.negated();
@@ -354,7 +354,7 @@ exports.placeTripleBet = async (req, res) => {
     else if (selectedOption === 'triple' && diceResults.every(d => d === diceResults[0])) {
       // 豹子（三个相同）
       win = true;
-      multiplier = 30; // 概率2.78%，赔率30倍
+      multiplier = 29; // 概率2.78%，赔率30倍
     }
     else if (selectedOption === 'pair' && (
         diceResults[0] === diceResults[1] ||
@@ -363,7 +363,7 @@ exports.placeTripleBet = async (req, res) => {
     )) {
       // 对子（任意两个相同）
       win = true;
-      multiplier = 2; // 概率41.67%，赔率2倍
+      multiplier = 5; // 概率41.67%，赔率2倍
     }
     else if (selectedOption === 'straight' && (
         // 顺子（三个续数字）
@@ -373,17 +373,17 @@ exports.placeTripleBet = async (req, res) => {
         (diceResults.includes(4) && diceResults.includes(5) && diceResults.includes(6))
     )) {
       win = true;
-      multiplier = 6; // 概率13.89%，赔率6倍
+      multiplier = 5; // 概率13.89%，赔率6倍
     }
 
     // 计算赢得金额
     const multipliers = {
-      big: new BigNumber('1.8'),
-      small: new BigNumber('1.8'),
-      middle: new BigNumber('4'),
-      triple: new BigNumber('30'),
-      pair: new BigNumber('2'),
-      straight: new BigNumber('6')
+      big: new BigNumber('0.8'),
+      small: new BigNumber('0.8'),
+      middle: new BigNumber('3'),
+      triple: new BigNumber('29'),
+      pair: new BigNumber('1'),
+      straight: new BigNumber('5')
     };
 
     winAmount = win
