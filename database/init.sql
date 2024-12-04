@@ -98,6 +98,18 @@ CREATE TABLE IF NOT EXISTS BattleRoyaleBets (
   INDEX idx_status (status)
 );
 
+CREATE TABLE IF NOT EXISTS BattleRoyaleProfits (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  roundId INT NOT NULL,
+  userId INT NOT NULL,
+  username VARCHAR(255) NOT NULL,
+  profit DECIMAL(10, 2) NOT NULL,
+  createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_round_id (roundId),
+  INDEX idx_user_id (userId)
+);
+
 CREATE TABLE IF NOT EXISTS TransactionSync (
   id INT PRIMARY KEY AUTO_INCREMENT,
   lastProcessedId INT NOT NULL,

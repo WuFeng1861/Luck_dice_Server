@@ -2,6 +2,7 @@ const { Op } = require('sequelize');
 const { v4: uuidv4 } = require('uuid');
 const BattleRoyale = require('../models/BattleRoyale');
 const BattleRoyaleBet = require('../models/BattleRoyaleBet');
+const BattleRoyaleProfit = require('../models/BattleRoyaleProfit');
 const Game = require('../models/Game');
 const User = require('../models/User');
 const { cache} = require('../utils/CacheUtils/cache');
@@ -9,7 +10,8 @@ const { getSecureRandomInt } = require('../utils/random');
 const sequelize = require('../config/database');
 const BigNumber = require('bignumber.js');
 const BattleRoyaleCache = require('../utils/CacheUtils/battleRoyaleCache');
-const {deleteUserCacheForUpdateBalance, getUserCache, setUserCache} = require("../utils/CacheUtils/userCache");
+const ProfitCache = require('../utils/CacheUtils/profitCache');
+const { deleteUserCacheForUpdateBalance, getUserCache, setUserCache } = require("../utils/CacheUtils/userCache");
 
 let gameInterval;
 
@@ -370,7 +372,7 @@ const startGameTask = () => {
     }
     isRunning = true;
     const t = await sequelize.transaction();
-    console.log('Checking and updating game...');
+    // console.log('Checking and updating game...');
     let needCreateNewGame = false;
     try {
       // 查找当前游戏
@@ -385,7 +387,7 @@ const startGameTask = () => {
         lock: true
       });
 
-      console.log('Current game:', currentGame && currentGame.gameId);
+      // console.log('Current game:', currentGame && currentGame.gameId);
 
       if (!currentGame) {
         await t.commit();
@@ -474,6 +476,7 @@ const settleGame = async (game, transaction) => {
     });
 
     const betUsers = new Map();
+    const userProfits = new Map();
     // 计算总奖池（90%）
     const totalPool = new BigNumber(game.totalBets).multipliedBy(0.9);
 
@@ -505,6 +508,13 @@ const settleGame = async (game, transaction) => {
       if (isWin) {
         const user = await User.findByPk(bet.userId, { transaction, lock: true });
         await user.updateBalance(winAmount, { transaction });
+        
+        const profit = new BigNumber(winAmount);
+        userProfits.set(bet.userId, {
+          profit: new BigNumber(userProfits.get(bet.userId)?.profit || 0).plus(profit).toString(),
+          username: user.username
+        });
+
         betUsers.set(bet.userId, {
           isWin: betUsers.get(bet.userId)?.isWin || isWin,
           amount: new BigNumber(betUsers.get(bet.userId)?.amount || 0).plus(bet.amount).toString(),
@@ -521,33 +531,34 @@ const settleGame = async (game, transaction) => {
           diceResults: safeZones,
         });
       }
-
-      // 获取用户余额
-      // let cachedUser = getUserCache(bet.userId);
-      // if (!cachedUser) {
-      //   const user = await User.findByPk(bet.userId);
-      //   const userData = {
-      //     id: user.id,
-      //     username: user.username,
-      //     balance: user.balance,
-      //     address: user.address || ''
-      //   };
-      //   setUserCache(bet.userId, userData);
-      //   cachedUser = userData;
-      // }
-
-      // 记录游戏历史
-      // await Game.create({
-      //   userId: bet.userId,
-      //   gameType: 'battle-royale',
-      //   amount: bet.amount,
-      //   selectedOption: JSON.stringify([bet.zone]),
-      //   diceResults: safeZones,
-      //   win: isWin,
-      //   finalBalance: cachedUser.balance
-      // }, { transaction });
     }
+    if (userProfits.size > 0) {
+      const maxProfitEntry = Array.from(userProfits.entries()).reduce((max, current) => {
+        const [userId, { profit, username }] = current;
+        return new BigNumber(profit).isGreaterThan(max.profit)
+          ? { userId, profit, username }
+          : max;
+      }, { userId: null, profit: '0', username: '' });
 
+      if (new BigNumber(maxProfitEntry.profit).isGreaterThan(0)) {
+
+        const currentRound = game.id;
+
+        await BattleRoyaleProfit.create({
+          roundId: currentRound,
+          userId: maxProfitEntry.userId,
+          username: maxProfitEntry.username,
+          profit: maxProfitEntry.profit
+        }, { transaction });
+
+        await ProfitCache.updateTopProfits({
+          roundId: currentRound,
+          userId: maxProfitEntry.userId,
+          username: maxProfitEntry.username,
+          profit: maxProfitEntry.profit
+        });
+      }
+    }
     // 记录游戏历史 betUsers
     for (const [userId, betUser] of betUsers) {
       let {isWin, amount, selectedOption, diceResults, finalBalance} = betUser;
@@ -627,16 +638,6 @@ const invalidateGame = async (game, transaction) => {
       await user.updateBalance(bet.amount, { transaction });
       // 记录用户
       betUsers.add(bet.userId);
-      // 记录游戏历史
-      // await Game.create({
-      //   userId: bet.userId,
-      //   gameType: 'battle-royale',
-      //   amount: '0',
-      //   selectedOption: JSON.stringify([bet.zone]),
-      //   diceResults: [],
-      //   win: false,
-      //   finalBalance: user.balance
-      // }, { transaction });
     }
 
     // 清除游戏缓存
@@ -653,6 +654,23 @@ const invalidateGame = async (game, transaction) => {
   }
 };
 
+const getTopProfits = async (req, res) => {
+  console.log('Getting top profits...')
+  try {
+    const profits = await ProfitCache.getTopProfits();
+    console.log('Top profits:', profits);
+    res.json({ profits });
+  } catch (error) {
+    console.error('Get top profits error:', error);
+    res.status(500).json({
+      error: {
+        code: 'INTERNAL_SERVER_ERROR',
+        message: '服务器内部错误'
+      }
+    });
+  }
+};
+
 module.exports = {
   getCurrentGame,
   getGameDetails,
@@ -660,5 +678,6 @@ module.exports = {
   getGameHistory,
   startGameTask,
   stopGameTask,
-  getZoneBets
+  getZoneBets,
+  getTopProfits
 };

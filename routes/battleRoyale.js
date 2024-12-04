@@ -142,6 +142,38 @@ router.post('/bet', auth, battleRoyaleController.placeBet);
 
 /**
  * @swagger
+ * /api/battle-royale/top-profits:
+ *   get:
+ *     summary: 获取最近9轮游戏的收益记录
+ *     tags: [大逃杀]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: 最近的收益记录
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 profits:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       roundId:
+ *                         type: integer
+ *                       userId:
+ *                         type: integer
+ *                       username:
+ *                         type: string
+ *                       profit:
+ *                         type: string
+ */
+router.post('/top-profits', auth, battleRoyaleController.getTopProfits);
+
+/**
+ * @swagger
  * /api/battle-royale/history:
  *   get:
  *     summary: 获取游戏历史

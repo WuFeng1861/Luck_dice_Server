@@ -10,7 +10,6 @@ const BattleRoyale = sequelize.define('BattleRoyale', {
   gameId: {
     type: DataTypes.STRING,
     allowNull: false,
-    unique: true,
     comment: '游戏场次ID'
   },
   status: {
@@ -50,6 +49,16 @@ const BattleRoyale = sequelize.define('BattleRoyale', {
     defaultValue: true,
     comment: '是否有效场次'
   }
+}, {
+  tableName: 'battleroyales',
+  timestamps: true,
+  indexes: [
+    {
+      name: 'idx_gameId',
+      fields: ['gameId'],
+      unique: true
+    }
+  ]
 });
 
 module.exports = BattleRoyale;
