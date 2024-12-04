@@ -65,6 +65,39 @@ CREATE TABLE IF NOT EXISTS Recharges (
   INDEX idx_createdAt (createdAt)
 );
 
+CREATE TABLE IF NOT EXISTS BattleRoyales (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  gameId VARCHAR(36) NOT NULL UNIQUE,
+  status ENUM('waiting', 'running', 'settling', 'finished') DEFAULT 'waiting',
+  startTime DATETIME NOT NULL,
+  endTime DATETIME NOT NULL,
+  safeZones VARCHAR(255),
+  totalBets DECIMAL(10, 2) DEFAULT 0,
+  isValid BOOLEAN DEFAULT TRUE,
+  createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_gameId (gameId),
+  INDEX idx_status (status),
+  INDEX idx_startTime (startTime),
+  INDEX idx_endTime (endTime)
+);
+
+CREATE TABLE IF NOT EXISTS BattleRoyaleBets (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  gameId VARCHAR(36) NOT NULL,
+  userId INT NOT NULL,
+  zone INT NOT NULL,
+  amount DECIMAL(10, 2) NOT NULL,
+  status ENUM('pending', 'win', 'lose', 'refunded') DEFAULT 'pending',
+  winAmount DECIMAL(10, 2) DEFAULT 0,
+  createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (userId) REFERENCES Users(id),
+  INDEX idx_gameId (gameId),
+  INDEX idx_userId (userId),
+  INDEX idx_status (status)
+);
+
 CREATE TABLE IF NOT EXISTS TransactionSync (
   id INT PRIMARY KEY AUTO_INCREMENT,
   lastProcessedId INT NOT NULL,

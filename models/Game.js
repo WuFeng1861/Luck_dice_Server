@@ -15,7 +15,7 @@ const Game = sequelize.define('Game', {
     type: DataTypes.STRING,
     allowNull: false,
     validate: {
-      isIn: [['single', 'triple', 'dragon-tiger']]
+      isIn: [['single', 'triple', 'dragon-tiger', 'battle-royale']]
     }
   },
   amount: {
@@ -41,4 +41,4 @@ const Game = sequelize.define('Game', {
   }
 });
 
-module.exports = Game; 
+module.exports = Game;

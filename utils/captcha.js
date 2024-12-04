@@ -1,5 +1,5 @@
 const svgCaptcha = require('svg-captcha');
-const { cache } = require('./cache');
+const { cache } = require('./CacheUtils/cache');
 
 // 配置验证码选项
 const captchaOptions = {

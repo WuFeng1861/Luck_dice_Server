@@ -1,6 +1,6 @@
 const { Op } = require('sequelize');
 const { Recharge, Transaction } = require('../models');
-const { cache } = require('../utils/cache');
+const { cache } = require('../utils/CacheUtils/cache');
 
 const getRechargeHistory = async (userId, page = 1, pageSize = 10) => {
   const cacheKey = `recharge:history:${userId}:${page}`;

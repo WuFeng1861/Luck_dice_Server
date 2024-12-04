@@ -2,9 +2,10 @@ const { Op } = require('sequelize');
 const User = require('../models/User');
 const { generateToken } = require('../utils/jwt');
 const { validateUsername, validatePassword, validateAddress, validateSignBindAddress} = require('../utils/validator');
-const { cache, deleteCache } = require('../utils/cache');
+const { cache } = require('../utils/CacheUtils/cache');
 const { generateCaptcha, validateCaptcha } = require('../utils/captcha');
 const { v4: uuidv4 } = require('uuid');
+const {deleteUserCacheForUpdateBalance, getUserCache, setUserCache} = require("../utils/CacheUtils/userCache");
 
 // 获取验证码
 exports.getCaptcha = async (req, res) => {
@@ -106,9 +107,8 @@ exports.logout = async (req, res) => {
 exports.getUser = async (req, res) => {
   try {
     const userId = req.user.id;
-    const cacheKey = `user:${userId}`;
 
-    const cachedUser = cache.get(cacheKey);
+    const cachedUser = getUserCache(userId);
     if (cachedUser) {
       return res.json(cachedUser);
     }
@@ -130,7 +130,7 @@ exports.getUser = async (req, res) => {
       address: user.address || ''
     };
 
-    cache.set(cacheKey, userData, 300);
+    setUserCache(user.id, userData);
 
     res.json(userData);
   } catch (error) {
@@ -259,12 +259,7 @@ exports.bindAddress = async (req, res) => {
     await user.save();
 
     // 删除用户缓存
-    await deleteCache(`user:${userId}`);
-
-    // 延迟双删
-    setTimeout(async () => {
-      await deleteCache(`user:${userId}`);
-    }, 500);
+    deleteUserCacheForUpdateBalance(userId);
 
     res.json({
       message: '地址绑定成功',

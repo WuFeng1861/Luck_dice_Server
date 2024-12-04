@@ -142,7 +142,7 @@ router.get('/history', auth, gameController.getHistory);
  *       200:
  *         description: 创建的历史记录
  */
-router.post('/history', auth, gameController.addHistory);
+// router.post('/history', auth, gameController.addHistory);
 
 /**
  * @swagger
@@ -181,6 +181,6 @@ router.get('/balance', auth, gameController.getBalance);
  *       200:
  *         description: 更新后的余额
  */
-router.post('/balance/update', auth, gameController.updateBalance);
+// router.post('/balance/update', auth, gameController.updateBalance);
 
 module.exports = router; 

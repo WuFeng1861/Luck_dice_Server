@@ -2,9 +2,10 @@ const User = require('../models/User');
 const Game = require('../models/Game');
 const { validateBet } = require('../utils/validator');
 const sequelize = require('../config/database');
-const { cache, withCache, deleteCache } = require('../utils/cache');
+const { cache, withCache, deleteCache } = require('../utils/CacheUtils/cache');
 const BigNumber = require('bignumber.js');
 const { rollDice, rollMultipleDice, drawCard } = require('../utils/random');
+const {deleteUserCacheForUpdateBalance} = require("../utils/CacheUtils/userCache");
 
 // 配置 BigNumber
 BigNumber.config({ DECIMAL_PLACES: 2, ROUNDING_MODE: BigNumber.ROUND_DOWN });
@@ -26,61 +27,6 @@ exports.getBalance = async (req, res) => {
   }
 };
 
-// 更新余额
-exports.updateBalance = async (req, res) => {
-  try {
-    const { amount } = req.body;
-    const user = await User.findByPk(req.user.id);
-
-    // 使用 BigNumber 进行计算和比较
-    const currentBalance = new BigNumber(user.balance);
-    const changeAmount = new BigNumber(amount);
-    const newBalance = currentBalance.plus(changeAmount);
-
-    // 检查余额是否足够（如果是减少余额的情况）
-    if (changeAmount.isNegative() && newBalance.isLessThan(0)) {
-      return res.status(400).json({
-        error: {
-          code: 'INSUFFICIENT_BALANCE',
-          message: '余额不足'
-        }
-      });
-    }
-
-    // 更新用户余额
-    try {
-      await user.updateBalance(changeAmount.toString());
-    } catch (error) {
-      return res.status(400).json({
-        error: {
-          code: 'INSUFFICIENT_BALANCE',
-          message: error.message
-        }
-      });
-    }
-
-    // 立即删除用户缓存
-    await deleteCache(`user:${user.id}`);
-
-    // 延迟双删
-    setTimeout(async () => {
-      await deleteCache(`user:${user.id}`);
-    }, 500);
-
-    res.json({
-      balance: user.balance
-    });
-  } catch (error) {
-    console.error('Update balance error:', error);
-    res.status(500).json({
-      error: {
-        code: 'INTERNAL_SERVER_ERROR',
-        message: '服务器内部错误'
-      }
-    });
-  }
-};
-
 // 下注
 exports.placeBet = async (req, res) => {
   const t = await sequelize.transaction();
@@ -93,12 +39,6 @@ exports.placeBet = async (req, res) => {
     // 转换为 BigNumber
     const betAmount = new BigNumber(amount);
     const userBalance = new BigNumber(user.balance);
-
-    // 立即删除缓存
-    await Promise.all([
-      deleteCache(`user:${userId}`),
-      deleteCache(`history:${userId}:*`)
-    ]);
 
     // 验证输入
     if (!validateBet(amount, selectedFace)) {
@@ -152,14 +92,8 @@ exports.placeBet = async (req, res) => {
     }, { transaction: t });
 
     await t.commit();
-
-    // 延迟双删缓存
-    setTimeout(async () => {
-      await Promise.all([
-        deleteCache(`user:${userId}`),
-        deleteCache(`history:${userId}:*`)
-      ]);
-    }, 500);
+    // 删除用户缓存
+    deleteUserCacheForUpdateBalance(userId);
 
     res.json({
       finalNumber,
@@ -225,72 +159,6 @@ exports.getHistory = async (req, res) => {
   }
 };
 
-// 添加游戏历史记录
-exports.addHistory = async (req, res) => {
-  try {
-    const userId = req.user.id;
-    const {
-      gameType,
-      amount,
-      win,
-      finalBalance,
-      diceResults,
-      selectedOption,
-    } = req.body;
-
-    // 创建游戏记录
-    const game = await Game.create({
-      userId,
-      gameType,
-      amount,
-      win,
-      finalBalance,
-      diceResults: diceResults,
-      selectedOption: selectedOption,
-      createdAt: new Date()
-    });
-
-    // 删除该用户的所有历史记录缓存
-    await deleteCache(`history:${userId}:*`);
-
-    // 获取最新的历史记录
-    const page = 1;
-    const pageSize = 10;
-    const offset = (page - 1) * pageSize;
-
-    const { count, rows } = await Game.findAndCountAll({
-      where: { userId },
-      order: [['createdAt', 'DESC']],
-      limit: pageSize,
-      offset
-    });
-
-    const result = {
-      history: rows,
-      pagination: {
-        currentPage: page,
-        pageSize,
-        totalItems: count,
-        totalPages: Math.ceil(count / pageSize)
-      }
-    };
-
-    // 设置新的缓存
-    cache.set(`history:${userId}:${page}`, result, 300);
-
-    res.json(result);
-
-  } catch (error) {
-    console.error('Add history error:', error);
-    res.status(500).json({
-      error: {
-        code: 'INTERNAL_SERVER_ERROR',
-        message: '服务器内部错误'
-      }
-    });
-  }
-};
-
 // 三骰子游戏下注
 exports.placeTripleBet = async (req, res) => {
   const t = await sequelize.transaction();
@@ -303,12 +171,6 @@ exports.placeTripleBet = async (req, res) => {
     // 转换为 BigNumber
     const betAmount = new BigNumber(amount);
     const userBalance = new BigNumber(user.balance);
-
-    // 立即删除缓存
-    await Promise.all([
-      deleteCache(`user:${userId}`),
-      deleteCache(`history:${userId}:*`)
-    ]);
 
     // 验证输入
     if (!['big', 'small', 'middle', 'triple', 'pair', 'straight'].includes(selectedOption)) {
@@ -415,13 +277,8 @@ exports.placeTripleBet = async (req, res) => {
 
     await t.commit();
 
-    // 延迟双删缓存
-    setTimeout(async () => {
-      await Promise.all([
-        deleteCache(`user:${userId}`),
-        deleteCache(`history:${userId}:*`)
-      ]);
-    }, 500);
+    // 删除用户缓存
+    deleteUserCacheForUpdateBalance(userId);
 
     res.json({
       diceResults,
@@ -454,12 +311,6 @@ exports.placeDragonTigerBet = async (req, res) => {
     // 转换为 BigNumber
     const betAmount = new BigNumber(amount);
     const userBalance = new BigNumber(user.balance);
-
-    // 立即删除缓存
-    await Promise.all([
-      deleteCache(`user:${userId}`),
-      deleteCache(`history:${userId}:*`)
-    ]);
 
     // 验证输入
     if (!['dragon', 'tiger', 'tie'].includes(selectedOption)) {
@@ -528,14 +379,8 @@ exports.placeDragonTigerBet = async (req, res) => {
     }, { transaction: t });
 
     await t.commit();
-
-    // 延迟双删缓存
-    setTimeout(async () => {
-      await Promise.all([
-        deleteCache(`user:${userId}`),
-        deleteCache(`history:${userId}:*`)
-      ]);
-    }, 500);
+    // 删除用户缓存
+    deleteUserCacheForUpdateBalance(userId);
 
     res.json({
       dragonCard,

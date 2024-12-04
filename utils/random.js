@@ -53,15 +53,6 @@ function rollMultipleDice(count) {
 function drawCard() {
     return getSecureRandomInt(1, 13);
 }
-//
-// let map = {};
-//
-// for (let index = 0; index < 6000; index++) {
-//     let result = drawCard();
-//     // console.log(result);
-//     map[result] = (map[result] || 0) + 1;
-// }
-// console.log(map);
 
 module.exports = {
     getSecureRandomInt,

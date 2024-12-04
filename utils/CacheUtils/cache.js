@@ -116,12 +116,8 @@ const withCache = (keyPrefix) => {
 };
 
 // 缓存删除工具
-const deleteCache = async (key, delay = 500) => {
+const deleteCache = (key) => {
   cache.delete(key);
-  if (delay > 0) {
-    await new Promise(resolve => setTimeout(resolve, delay));
-    cache.delete(key);
-  }
 };
 
 module.exports = {

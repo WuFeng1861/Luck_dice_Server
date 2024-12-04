@@ -6,8 +6,9 @@ const User = require('../models/User');
 const Recharge = require('../models/Recharge');
 const { BigNumber } = require('bignumber.js');
 const TransactionSync = require('../models/TransactionSync');
-const {deleteCache} = require("../utils/cache");
+const {deleteCache} = require("../utils/CacheUtils/cache");
 const {clearUserRechargeCache} = require("./rechargeService");
+const {removeUserCache} = require("../utils/CacheUtils/userCache");
 
 const finishList = [];
 
@@ -235,7 +236,7 @@ const processNewTransactions = async () => {
     for (const tx of finishList) {
       // 删除缓存
       await clearUserRechargeCache(tx.userId);
-      await deleteCache(`user:${tx.userId}`);
+      await removeUserCache(tx.userId);
       console.log(`${tx.userId} 用户:${tx.sender}地址， 充值了 ${tx.amount}，充值成功。交易hash:${tx.hash}，充值前余额:${tx.oldBalance}，充值后余额:${tx.newBalance}`)
     }
     finishList.length = 0; // 清空已完成的交易列表

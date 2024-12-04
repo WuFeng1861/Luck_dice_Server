@@ -10,7 +10,9 @@ const gameRoutes = require('./routes/game');
 const errorMiddleware = require('./middleware/error');
 const statsRoutes = require('./routes/stats');
 const rechargeRoutes = require('./routes/recharge');
+const battleRoyaleRoutes = require('./routes/battleRoyale');
 const { startRechargeTask } = require('./controllers/rechargeController');
+const { startGameTask } = require('./controllers/battleRoyaleController');
 
 const app = express();
 
@@ -26,6 +28,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/game', gameRoutes);
 app.use('/api/stats', statsRoutes);
 app.use('/api/recharge', rechargeRoutes);
+app.use('/api/battle-royale', battleRoyaleRoutes);
 
 // 错误处理
 app.use(errorMiddleware);
@@ -37,6 +40,9 @@ sequelize.sync({ alter: true })
     
     // 启动充值检查任务
     startRechargeTask();
+    
+    // 启动大逃杀游戏任务
+    startGameTask();
     
     // 启动服务器
     const PORT = process.env.PORT || 3000;
